@@ -34,7 +34,8 @@ def collect_glyph_files():
         glyph_file_path = os.path.join(path_define.glyphs_dir, glyph_file_name)
         glyph_file_name = glyph_file_name.removesuffix('.png')
         if glyph_file_name == 'notdef':
-            cs = []
+            glyph_file_paths['.notdef'] = glyph_file_path
+            continue
         elif glyph_file_name == '10':
             cs = ['#']
         elif glyph_file_name == 'K,Q':
