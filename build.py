@@ -1,10 +1,12 @@
 import logging
 
+from services import design_service
+
 logging.basicConfig(level=logging.DEBUG)
 
 
 def main():
-    pass
+    design_service.verify_glyph_files()
 
 
 if __name__ == '__main__':
