@@ -19,4 +19,6 @@ def make_release_zips(font_formats=None):
         with zipfile.ZipFile(zip_file_path, 'w') as zip_file:
             font_file_name = f'{font_config.font_file_name_prefix}.{font_format}'
             zip_file.write(os.path.join(path_define.outputs_dir, font_file_name), font_file_name)
+            zip_file.write(os.path.join(path_define.assets_dir, 'readme.txt'), 'readme.txt')
+            zip_file.write(os.path.join(path_define.project_root_dir, 'LICENSE-CC0'), 'CC0.txt')
         logger.info(f'make {zip_file_path}')
