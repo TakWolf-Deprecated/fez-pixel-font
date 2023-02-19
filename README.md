@@ -1,3 +1,5 @@
+![gomez](art/gomez-x4.gif)
+
 # FEZ Pixel Font
 
 [![Creative Commons Zero v1.0 Universal](https://img.shields.io/badge/license-CC0--1.0-orange)](https://creativecommons.org/publicdomain/zero/1.0/)
