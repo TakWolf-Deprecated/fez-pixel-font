@@ -2,7 +2,7 @@
 * FEZ Pixel Font - Zu *
 =======================
 
-A font for the Alphabet in the game "FEZ (https://fezgame.com)" called "Zu Language".
+A font for the Alphabet in the game FEZ (https://fezgame.com) called "Zu Language".
 
 Support "A" ~ "Z", "0" ~ "9" and "10" glyphs.
 
