@@ -1,0 +1,58 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+@font-face {
+    font-family: Fez-Pixel-Zu;
+    src: url("../fonts/fez-pixel-zu.woff2");
+}
+
+.page {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: row;
+    .left {
+        flex: 1;
+        background-color: gold;
+        label {
+            height: 100%;
+            padding: 24px;
+            display: block;
+            textarea {
+                width: 100%;
+                height: 100%;
+                padding: 12px;
+                color: black;
+                background-color: antiquewhite;
+                border-width: 4px;
+                border-color: coral;
+                border-radius: 2px;
+                outline: none;
+                resize: none;
+                font-size: 20px;
+                line-height: 30px;
+                font-weight: bold;
+            }
+        }
+    }
+    .right {
+        padding: 24px;
+        flex: 1;
+        color: #471186;
+        background-color: mediumpurple;
+        font-family: Fez-Pixel-Zu, sans-serif;
+        font-size: 24px;
+        line-height: 24px;
+        writing-mode: vertical-rl;
+        text-orientation: upright;
+        white-space: pre-line;
+        word-break: break-all;
+        overflow-y: scroll;
+    }
+}
