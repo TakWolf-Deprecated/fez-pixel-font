@@ -23,3 +23,9 @@ The Copyright of Alphabet belongs to [Polytron](http://www.polytroncorporation.c
 This Font Software is licensed under the [Creative Commons Zero v1.0 Universal](LICENSE-CC0).
 
 The Font Build Scripts is licensed under the [MIT License](LICENSE-MIT).
+
+## References
+
+[FEZ Game Wiki - Zu Language](https://fez.fandom.com/wiki/Zu_Language)
+
+[GameFAQs - Fez - Alphabet/Number/Input Chart](https://gamefaqs.gamespot.com/xbox360/961239-fez/map/7945-alphabet-number-input-chart)
