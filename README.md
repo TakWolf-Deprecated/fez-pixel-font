@@ -24,6 +24,12 @@ This Font Software is licensed under the [Creative Commons Zero v1.0 Universal](
 
 The Font Build Scripts is licensed under the [MIT License](LICENSE-MIT).
 
+## Dependencies
+
+- [FontTools](https://github.com/fonttools/fonttools)
+- [Brotli](https://github.com/google/brotli)
+- [PyPNG](https://gitlab.com/drj11/pypng)
+
 ## References
 
 [FEZ Game Wiki - Zu Language](https://fez.fandom.com/wiki/Zu_Language)
