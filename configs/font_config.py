@@ -1,7 +1,7 @@
 from typing import Final
 
 FAMILY_NAME: Final[str] = 'FEZ Pixel Zu'
-VERSION: Final[str] = '1.0.0'
+VERSION: Final[str] = '1.1.0'
 MANUFACTURER: Final[str] = 'TakWolf'
 DESIGNER: Final[str] = 'TakWolf'
 DESCRIPTION: Final[str] = "A font for the Alphabet in the game FEZ (https://fezgame.com) called 'Zu Language'."
