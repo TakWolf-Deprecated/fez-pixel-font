@@ -12,7 +12,7 @@ def load_glyph_data_from_png(file_path):
     for bitmap_row in bitmap:
         glyph_data_row = []
         bitmap_row_len = len(bitmap_row)
-        pixel_step = int(bitmap_row_len / width)
+        pixel_step = bitmap_row_len // width
         for x in range(pixel_step - 1, bitmap_row_len, pixel_step):
             alpha = bitmap_row[x]
             if alpha > 127:
