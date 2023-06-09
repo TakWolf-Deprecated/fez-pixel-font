@@ -1,3 +1,2 @@
-fonttools==4.39.4
-Brotli==1.0.9
+pixel-font-builder==0.0.2
 pypng==0.20220715.0

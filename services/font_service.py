@@ -1,162 +1,161 @@
 import logging
 import os
 
-from fontTools.fontBuilder import FontBuilder
-from fontTools.pens.t2CharStringPen import T2CharStringPen
-from fontTools.pens.ttGlyphPen import TTGlyphPen
+import png
+from pixel_font_builder import FontBuilder, Glyph, StyleName, SerifMode, WidthMode
 
-import configs
 from configs import path_define, font_config
-from utils import glyph_util, fs_util
+from utils import fs_util
 
 logger = logging.getLogger('font-service')
 
 
-def _get_glyph_name(code_point):
-    if isinstance(code_point, int):
-        return f'uni{code_point:04X}'
-    else:
-        return code_point
+def _load_glyph_data_from_png(file_path: str) -> tuple[list[list[int]], int, int]:
+    width, height, bitmap, _ = png.Reader(filename=file_path).read()
+    data = []
+    for bitmap_row in bitmap:
+        data_row = []
+        for x in range(0, width * 4, 4):
+            alpha = bitmap_row[x + 3]
+            if alpha > 127:
+                data_row.append(1)
+            else:
+                data_row.append(0)
+        data.append(data_row)
+    return data, width, height
 
 
-class GlyphInfoBuilder:
-    def __init__(self, units_per_em, box_origin_y, px_units):
-        self.units_per_em = units_per_em
-        self.box_origin_y = box_origin_y
-        self.px_units = px_units
-        self.glyph_data_info_map = {}
-        self.otf_glyph_info_map = {}
-        self.ttf_glyph_info_map = {}
+def _save_glyph_data_to_png(data: list[list[int]], file_path: str):
+    bitmap = []
+    for data_row in data:
+        bitmap_row = []
+        for x in data_row:
+            bitmap_row.append(0)
+            bitmap_row.append(0)
+            bitmap_row.append(0)
+            if x == 0:
+                bitmap_row.append(0)
+            else:
+                bitmap_row.append(255)
+        bitmap.append(bitmap_row)
+    png.from_array(bitmap, 'RGBA').save(file_path)
 
-    def _get_glyph_data_info(self, glyph_file_path):
-        if glyph_file_path in self.glyph_data_info_map:
-            glyph_data_info = self.glyph_data_info_map[glyph_file_path]
+
+def format_glyph_files():
+    for glyph_file_dir, glyph_file_name in fs_util.walk_files(path_define.glyphs_dir):
+        if not glyph_file_name.endswith('.png'):
+            continue
+        glyph_file_path = os.path.join(glyph_file_dir, glyph_file_name)
+        glyph_data, glyph_width, glyph_height = _load_glyph_data_from_png(glyph_file_path)
+        assert glyph_width == glyph_height == 6, f"Incorrect glyph data: '{glyph_file_path}'"
+        for alpha in glyph_data[-1]:
+            assert alpha == 0, f"Incorrect glyph data: '{glyph_file_path}'"
+        for i in range(0, glyph_height):
+            assert glyph_data[i][0] == 0, f"Incorrect glyph data: '{glyph_file_path}'"
+        _save_glyph_data_to_png(glyph_data, glyph_file_path)
+        logger.info(f"Format glyph file: '{glyph_file_path}'")
+
+
+def _collect_glyph_files():
+    character_mapping = {}
+    glyph_file_paths = {}
+
+    for glyph_file_dir, glyph_file_name in fs_util.walk_files(path_define.glyphs_dir):
+        if not glyph_file_name.endswith('.png'):
+            continue
+        glyph_file_path = os.path.join(glyph_file_dir, glyph_file_name)
+        c_name = glyph_file_name.removesuffix('.png')
+        if c_name == 'notdef':
+            glyph_name = '.notdef'
         else:
-            glyph_data, width_px, height_px = glyph_util.load_glyph_data_from_png(glyph_file_path)
-            outlines = glyph_util.get_outlines_from_glyph_data(glyph_data, self.px_units)
-            glyph_data_info = outlines, width_px * self.px_units, height_px * self.px_units
-            self.glyph_data_info_map[glyph_file_path] = glyph_data_info
-        return glyph_data_info
+            if c_name == '10':
+                code_points = [ord('#')]
+            elif c_name == 'K,Q':
+                code_points = [ord('K'), ord('Q')]
+            elif c_name == 'U,V':
+                code_points = [ord('U'), ord('V')]
+            elif c_name == 'space':
+                code_points = [ord(' ')]
+            else:
+                code_points = [ord(c_name)]
+            glyph_name = f'uni{code_points[0]:04X}'
+            for code_point in code_points:
+                character_mapping[code_point] = glyph_name
+        glyph_file_paths[glyph_name] = glyph_file_path
 
-    def _draw_glyph(self, outlines, width, height, is_ttf):
-        if is_ttf:
-            pen = TTGlyphPen(None)
-        else:
-            pen = T2CharStringPen(0, None)
-        if len(outlines) > 0:
-            for outline_index, outline in enumerate(outlines):
-                for point_index, point in enumerate(outline):
+    fallback_letter_offsets = [code_point - ord('A') for code_point in [ord('a'), ord('Ａ'), ord('ａ')]]
+    for code_point in range(ord('A'), ord('Z') + 1):
+        if code_point not in character_mapping:
+            continue
+        glyph_name = character_mapping[code_point]
+        for fallback_letter_offset in fallback_letter_offsets:
+            fallback_code_point = code_point + fallback_letter_offset
+            character_mapping[fallback_code_point] = glyph_name
 
-                    # 转换左上角原点坐标系为 OpenType 坐标系
-                    x, y = point
-                    y = self.box_origin_y + (height - self.units_per_em) / 2 - y
-                    point = x, y
+    fallback_number_offset = ord('０') - ord('0')
+    for code_point in range(ord('0'), ord('9') + 1):
+        if code_point not in character_mapping:
+            continue
+        glyph_name = character_mapping[code_point]
+        fallback_code_point = code_point + fallback_number_offset
+        character_mapping[fallback_code_point] = glyph_name
 
-                    if point_index == 0:
-                        pen.moveTo(point)
-                    else:
-                        pen.lineTo(point)
-                if outline_index < len(outlines) - 1:
-                    pen.endPath()
-                else:
-                    pen.closePath()
-        else:
-            pen.moveTo((0, 0))
-            pen.closePath()
-        advance_width = width
-        if is_ttf:
-            return pen.glyph(), advance_width
-        else:
-            return pen.getCharString(), advance_width
-
-    def _get_glyph_info(self, glyph_file_path, is_ttf):
-        if is_ttf:
-            glyph_info_map = self.ttf_glyph_info_map
-        else:
-            glyph_info_map = self.otf_glyph_info_map
-        if glyph_file_path in glyph_info_map:
-            glyph_info = glyph_info_map[glyph_file_path]
-        else:
-            outlines, width, height = self._get_glyph_data_info(glyph_file_path)
-            glyph_info = self._draw_glyph(outlines, width, height, is_ttf)
-            glyph_info_map[glyph_file_path] = glyph_info
-            logger.info(f'draw {"ttf" if is_ttf else "otf"} glyph {glyph_file_path}')
-        return glyph_info
-
-    def build_glyph_info_map(self, glyph_file_paths, is_ttf):
-        glyph_info_map = {}
-        for code_point, glyph_file_path in glyph_file_paths.items():
-            glyph_info = self._get_glyph_info(glyph_file_path, is_ttf)
-            glyph_name = _get_glyph_name(code_point)
-            glyph_info_map[glyph_name] = glyph_info
-        return glyph_info_map
+    return character_mapping, glyph_file_paths
 
 
-def _create_font_builder(name_strings, units_per_em, vertical_metrics, glyph_order, character_map, glyph_info_map, is_ttf):
-    builder = FontBuilder(units_per_em, isTTF=is_ttf)
-    builder.setupNameTable(name_strings)
-    builder.setupGlyphOrder(glyph_order)
-    builder.setupCharacterMap(character_map)
-    glyphs = {}
-    advance_widths = {}
-    for glyph_name in glyph_order:
-        glyphs[glyph_name], advance_widths[glyph_name] = glyph_info_map[glyph_name]
-    if is_ttf:
-        builder.setupGlyf(glyphs)
-        horizontal_metrics = {glyph_name: (advance_width, glyphs[glyph_name].xMin) for glyph_name, advance_width in advance_widths.items()}
-    else:
-        builder.setupCFF(name_strings['psName'], {'FullName': name_strings['fullName']}, glyphs, {})
-        horizontal_metrics = {glyph_name: (advance_width, glyphs[glyph_name].calcBounds(None)[0]) for glyph_name, advance_width in advance_widths.items()}
-    builder.setupHorizontalMetrics(horizontal_metrics)
-    builder.setupHorizontalHeader(
-        ascent=vertical_metrics.ascent,
-        descent=vertical_metrics.descent,
+def _create_builder() -> FontBuilder:
+    character_mapping, glyph_file_paths = _collect_glyph_files()
+
+    builder = FontBuilder(
+        font_config.size,
+        font_config.ascent,
+        font_config.descent,
+        font_config.x_height,
+        font_config.cap_height,
     )
-    builder.setupOS2(
-        sTypoAscender=vertical_metrics.ascent,
-        sTypoDescender=vertical_metrics.descent,
-        usWinAscent=vertical_metrics.ascent,
-        usWinDescent=-vertical_metrics.descent,
-        sxHeight=vertical_metrics.x_height,
-        sCapHeight=vertical_metrics.cap_height,
-    )
-    builder.setupPost()
+
+    builder.character_mapping.update(character_mapping)
+    for glyph_name, glyph_file_path in glyph_file_paths.items():
+        glyph_data, glyph_width, glyph_height = _load_glyph_data_from_png(glyph_file_path)
+        builder.add_glyph(Glyph(
+            name=glyph_name,
+            advance_width=glyph_width,
+            offset=(0, font_config.descent),
+            data=glyph_data,
+        ))
+
+    builder.meta_infos.version = font_config.VERSION
+    builder.meta_infos.family_name = font_config.FAMILY_NAME
+    builder.meta_infos.style_name = StyleName.REGULAR
+    builder.meta_infos.serif_mode = SerifMode.SANS_SERIF
+    builder.meta_infos.width_mode = WidthMode.MONOSPACED
+    builder.meta_infos.manufacturer = font_config.MANUFACTURER
+    builder.meta_infos.designer = font_config.DESIGNER
+    builder.meta_infos.description = font_config.DESCRIPTION
+    builder.meta_infos.copyright_info = font_config.COPYRIGHT_INFO
+    builder.meta_infos.license_info = font_config.LICENSE_INFO
+    builder.meta_infos.vendor_url = font_config.VENDOR_URL
+    builder.meta_infos.designer_url = font_config.DESIGNER_URL
+    builder.meta_infos.license_url = font_config.LICENSE_URL
+
     return builder
 
 
-def make_fonts(alphabet, glyph_file_paths, font_formats=None):
-    if font_formats is None:
-        font_formats = configs.font_formats
+def make_font_files():
+    fs_util.make_dirs(path_define.outputs_dir)
 
-    fs_util.make_dirs_if_not_exists(path_define.outputs_dir)
-
-    name_strings = font_config.get_name_strings()
-    units_per_em = font_config.get_units_per_em()
-    vertical_metrics = font_config.get_vertical_metrics()
-    glyph_order = ['.notdef']
-    character_map = {}
-    for c in alphabet:
-        code_point = ord(c)
-        glyph_name = _get_glyph_name(code_point)
-        glyph_order.append(glyph_name)
-        character_map[code_point] = glyph_name
-    glyph_info_builder = GlyphInfoBuilder(units_per_em, font_config.get_box_origin_y(), font_config.px_units)
-
-    if 'otf' in font_formats or 'woff2' in font_formats:
-        glyph_info_map = glyph_info_builder.build_glyph_info_map(glyph_file_paths, False)
-        font_builder = _create_font_builder(name_strings, units_per_em, vertical_metrics, glyph_order, character_map, glyph_info_map, False)
-        if 'otf' in font_formats:
-            font_file_path = os.path.join(path_define.outputs_dir, f'{font_config.font_file_name_prefix}.otf')
-            font_builder.save(font_file_path)
-            logger.info(f'make {font_file_path}')
-        if 'woff2' in font_formats:
-            font_builder.font.flavor = 'woff2'
-            font_file_path = os.path.join(path_define.outputs_dir, f'{font_config.font_file_name_prefix}.woff2')
-            font_builder.save(font_file_path)
-            logger.info(f'make {font_file_path}')
-    if 'ttf' in font_formats:
-        glyph_info_map = glyph_info_builder.build_glyph_info_map(glyph_file_paths, True)
-        font_builder = _create_font_builder(name_strings, units_per_em, vertical_metrics, glyph_order, character_map, glyph_info_map, True)
-        font_file_path = os.path.join(path_define.outputs_dir, f'{font_config.font_file_name_prefix}.ttf')
-        font_builder.save(font_file_path)
-        logger.info(f'make {font_file_path}')
+    builder = _create_builder()
+    otf_builder = builder.to_otf_builder()
+    otf_file_path = os.path.join(path_define.outputs_dir, f'{font_config.outputs_name}.otf')
+    otf_builder.save(otf_file_path)
+    logger.info(f"Make font file: '{otf_file_path}'")
+    otf_builder.font.flavor = 'woff2'
+    woff2_file_path = os.path.join(path_define.outputs_dir, f'{font_config.outputs_name}.woff2')
+    otf_builder.save(woff2_file_path)
+    logger.info(f"Make font file: '{woff2_file_path}'")
+    ttf_file_path = os.path.join(path_define.outputs_dir, f'{font_config.outputs_name}.ttf')
+    builder.save_ttf(ttf_file_path)
+    logger.info(f"Make font file: '{ttf_file_path}'")
+    bdf_file_path = os.path.join(path_define.outputs_dir, f'{font_config.outputs_name}.bdf')
+    builder.save_bdf(bdf_file_path)
+    logger.info(f"Make font file: '{bdf_file_path}'")
