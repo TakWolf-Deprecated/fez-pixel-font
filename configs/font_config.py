@@ -1,7 +1,9 @@
 from typing import Final
 
-FAMILY_NAME: Final[str] = 'FEZ Pixel Zu'
 VERSION: Final[str] = '1.1.0'
+FAMILY_NAME: Final[str] = 'FEZ Pixel Zu'
+OUTPUTS_NAME: Final[str] = 'fez-pixel-zu'
+ZIP_OUTPUTS_NAME: Final[str] = 'fez-pixel-font'
 MANUFACTURER: Final[str] = 'TakWolf'
 DESIGNER: Final[str] = 'TakWolf'
 DESCRIPTION: Final[str] = "A font for the Alphabet in the game FEZ (https://fezgame.com) called 'Zu Language'."
@@ -16,5 +18,3 @@ ascent = 5
 descent = -1
 x_height = 5
 cap_height = 5
-
-outputs_name = FAMILY_NAME.lower().replace(' ', '-')
