@@ -1,2 +1,2 @@
-pixel-font-builder==0.0.2
+pixel-font-builder==0.0.3
 pypng==0.20220715.0
