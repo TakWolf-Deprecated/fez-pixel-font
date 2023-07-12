@@ -1,6 +1,6 @@
 from typing import Final
 
-VERSION: Final[str] = '1.1.0'
+VERSION: Final[str] = '1.2.0'
 FAMILY_NAME: Final[str] = 'FEZ Pixel Zu'
 OUTPUTS_NAME: Final[str] = 'fez-pixel-zu'
 ZIP_OUTPUTS_NAME: Final[str] = 'fez-pixel-font'
