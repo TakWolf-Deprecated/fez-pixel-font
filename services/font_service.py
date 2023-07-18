@@ -1,44 +1,12 @@
 import logging
 import os
 
-import png
 from pixel_font_builder import FontBuilder, Glyph, StyleName, SerifMode, WidthMode
 
 from configs import path_define, font_config
-from utils import fs_util
+from utils import fs_util, glyph_util
 
 logger = logging.getLogger('font-service')
-
-
-def _load_glyph_data_from_png(file_path: str) -> tuple[list[list[int]], int, int]:
-    width, height, bitmap, _ = png.Reader(filename=file_path).read()
-    data = []
-    for bitmap_row in bitmap:
-        data_row = []
-        for x in range(0, width * 4, 4):
-            alpha = bitmap_row[x + 3]
-            if alpha > 127:
-                data_row.append(1)
-            else:
-                data_row.append(0)
-        data.append(data_row)
-    return data, width, height
-
-
-def _save_glyph_data_to_png(data: list[list[int]], file_path: str):
-    bitmap = []
-    for data_row in data:
-        bitmap_row = []
-        for x in data_row:
-            bitmap_row.append(0)
-            bitmap_row.append(0)
-            bitmap_row.append(0)
-            if x == 0:
-                bitmap_row.append(0)
-            else:
-                bitmap_row.append(255)
-        bitmap.append(bitmap_row)
-    png.from_array(bitmap, 'RGBA').save(file_path)
 
 
 def format_glyph_files():
@@ -46,13 +14,13 @@ def format_glyph_files():
         if not glyph_file_name.endswith('.png'):
             continue
         glyph_file_path = os.path.join(glyph_file_dir, glyph_file_name)
-        glyph_data, glyph_width, glyph_height = _load_glyph_data_from_png(glyph_file_path)
+        glyph_data, glyph_width, glyph_height = glyph_util.load_glyph_data_from_png(glyph_file_path)
         assert glyph_width == glyph_height == 6, f"Incorrect glyph data: '{glyph_file_path}'"
         for alpha in glyph_data[-1]:
             assert alpha == 0, f"Incorrect glyph data: '{glyph_file_path}'"
         for i in range(0, glyph_height):
             assert glyph_data[i][0] == 0, f"Incorrect glyph data: '{glyph_file_path}'"
-        _save_glyph_data_to_png(glyph_data, glyph_file_path)
+        glyph_util.save_glyph_data_to_png(glyph_data, glyph_file_path)
         logger.info(f"Format glyph file: '{glyph_file_path}'")
 
 
@@ -116,7 +84,7 @@ def _create_builder() -> FontBuilder:
 
     builder.character_mapping.update(character_mapping)
     for glyph_name, glyph_file_path in glyph_file_paths.items():
-        glyph_data, glyph_width, glyph_height = _load_glyph_data_from_png(glyph_file_path)
+        glyph_data, glyph_width, glyph_height = glyph_util.load_glyph_data_from_png(glyph_file_path)
         builder.add_glyph(Glyph(
             name=glyph_name,
             advance_width=glyph_width,
