@@ -18,4 +18,4 @@ def make_release_zips():
             file.write(os.path.join(path_define.outputs_dir, font_file_name), font_file_name)
             file.write(os.path.join(path_define.assets_dir, 'readme.txt'), 'readme.txt')
             file.write(os.path.join(path_define.project_root_dir, 'LICENSE-CC0'), 'CC0.txt')
-        logger.info(f"Make release zip: '{file_path}'")
+        logger.info("Make release zip: '%s'", file_path)
