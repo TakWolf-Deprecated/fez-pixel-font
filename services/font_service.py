@@ -2,6 +2,7 @@ import logging
 import os
 
 from pixel_font_builder import FontBuilder, Glyph, StyleName, SerifMode, WidthMode
+from pixel_font_builder.opentype import Flavor
 
 from configs import path_define, font_config
 from utils import fs_util, glyph_util
@@ -113,17 +114,19 @@ def make_font_files():
     fs_util.make_dirs(path_define.outputs_dir)
 
     builder = _create_builder()
-    otf_builder = builder.to_otf_builder()
+
     otf_file_path = os.path.join(path_define.outputs_dir, f'{font_config.OUTPUTS_NAME}.otf')
-    otf_builder.save(otf_file_path)
+    builder.save_otf(otf_file_path)
     logger.info("Make font file: '%s'", otf_file_path)
-    otf_builder.font.flavor = 'woff2'
+
     woff2_file_path = os.path.join(path_define.outputs_dir, f'{font_config.OUTPUTS_NAME}.woff2')
-    otf_builder.save(woff2_file_path)
+    builder.save_otf(woff2_file_path, flavor=Flavor.WOFF2)
     logger.info("Make font file: '%s'", woff2_file_path)
+
     ttf_file_path = os.path.join(path_define.outputs_dir, f'{font_config.OUTPUTS_NAME}.ttf')
     builder.save_ttf(ttf_file_path)
     logger.info("Make font file: '%s'", ttf_file_path)
+
     bdf_file_path = os.path.join(path_define.outputs_dir, f'{font_config.OUTPUTS_NAME}.bdf')
     builder.save_bdf(bdf_file_path)
     logger.info("Make font file: '%s'", bdf_file_path)
