@@ -84,6 +84,7 @@ def _create_builder() -> FontBuilder:
     )
 
     builder.character_mapping.update(character_mapping)
+
     for glyph_name, glyph_file_path in glyph_file_paths.items():
         glyph_data, glyph_width, glyph_height = glyph_util.load_glyph_data_from_png(glyph_file_path)
         builder.add_glyph(Glyph(
