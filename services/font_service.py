@@ -75,24 +75,13 @@ def _collect_glyph_files():
 def _create_builder() -> FontBuilder:
     character_mapping, glyph_file_paths = _collect_glyph_files()
 
-    builder = FontBuilder(
-        font_config.size,
-        font_config.ascent,
-        font_config.descent,
-        font_config.x_height,
-        font_config.cap_height,
-    )
+    builder = FontBuilder()
 
-    builder.character_mapping.update(character_mapping)
-
-    for glyph_name, glyph_file_path in glyph_file_paths.items():
-        glyph_data, glyph_width, glyph_height = glyph_util.load_glyph_data_from_png(glyph_file_path)
-        builder.add_glyph(Glyph(
-            name=glyph_name,
-            advance_width=glyph_width,
-            offset=(0, font_config.descent),
-            data=glyph_data,
-        ))
+    builder.metrics.size = font_config.size
+    builder.metrics.ascent = font_config.ascent
+    builder.metrics.descent = font_config.descent
+    builder.metrics.x_height = font_config.x_height
+    builder.metrics.cap_height = font_config.cap_height
 
     builder.meta_infos.version = font_config.VERSION
     builder.meta_infos.family_name = font_config.FAMILY_NAME
@@ -107,6 +96,17 @@ def _create_builder() -> FontBuilder:
     builder.meta_infos.vendor_url = font_config.VENDOR_URL
     builder.meta_infos.designer_url = font_config.DESIGNER_URL
     builder.meta_infos.license_url = font_config.LICENSE_URL
+
+    builder.character_mapping.update(character_mapping)
+
+    for glyph_name, glyph_file_path in glyph_file_paths.items():
+        glyph_data, glyph_width, glyph_height = glyph_util.load_glyph_data_from_png(glyph_file_path)
+        builder.glyphs.append(Glyph(
+            name=glyph_name,
+            advance_width=glyph_width,
+            offset=(0, font_config.descent),
+            data=glyph_data,
+        ))
 
     return builder
 
