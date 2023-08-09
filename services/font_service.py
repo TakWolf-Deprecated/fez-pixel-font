@@ -25,32 +25,40 @@ def format_glyph_files():
         logger.info("Format glyph file: '%s'", glyph_file_path)
 
 
-def _collect_glyph_files():
-    character_mapping = {}
-    glyph_file_paths = {}
-
+def _collect_glyph_files() -> tuple[dict[int, str], list[tuple[str, str]]]:
+    registry = {}
     for glyph_file_dir, glyph_file_name in fs_util.walk_files(path_define.glyphs_dir):
         if not glyph_file_name.endswith('.png'):
             continue
         glyph_file_path = os.path.join(glyph_file_dir, glyph_file_name)
         c_name = glyph_file_name.removesuffix('.png')
         if c_name == 'notdef':
+            code_points = [-1]
+        elif c_name == '10':
+            code_points = [ord('#')]
+        elif c_name == 'K,Q':
+            code_points = [ord('K'), ord('Q')]
+        elif c_name == 'U,V':
+            code_points = [ord('U'), ord('V')]
+        elif c_name == 'space':
+            code_points = [ord(' ')]
+        else:
+            code_points = [ord(c_name)]
+        for code_point in code_points:
+            registry[code_point] = glyph_file_path
+
+    sequence = list(registry.keys())
+    sequence.sort()
+
+    character_mapping = {}
+    glyph_file_infos = []
+    for code_point in sequence:
+        if code_point == -1:
             glyph_name = '.notdef'
         else:
-            if c_name == '10':
-                code_points = [ord('#')]
-            elif c_name == 'K,Q':
-                code_points = [ord('K'), ord('Q')]
-            elif c_name == 'U,V':
-                code_points = [ord('U'), ord('V')]
-            elif c_name == 'space':
-                code_points = [ord(' ')]
-            else:
-                code_points = [ord(c_name)]
-            glyph_name = f'uni{code_points[0]:04X}'
-            for code_point in code_points:
-                character_mapping[code_point] = glyph_name
-        glyph_file_paths[glyph_name] = glyph_file_path
+            glyph_name = f'uni{code_point:04X}'
+            character_mapping[code_point] = glyph_name
+        glyph_file_infos.append((glyph_name, registry[code_point]))
 
     fallback_letter_offsets = [code_point - ord('A') for code_point in [ord('a'), ord('Ａ'), ord('ａ')]]
     for code_point in range(ord('A'), ord('Z') + 1):
@@ -69,11 +77,11 @@ def _collect_glyph_files():
         fallback_code_point = code_point + fallback_number_offset
         character_mapping[fallback_code_point] = glyph_name
 
-    return character_mapping, glyph_file_paths
+    return character_mapping, glyph_file_infos
 
 
 def _create_builder() -> FontBuilder:
-    character_mapping, glyph_file_paths = _collect_glyph_files()
+    character_mapping, glyph_file_infos = _collect_glyph_files()
 
     builder = FontBuilder()
 
@@ -99,7 +107,7 @@ def _create_builder() -> FontBuilder:
 
     builder.character_mapping.update(character_mapping)
 
-    for glyph_name, glyph_file_path in glyph_file_paths.items():
+    for glyph_name, glyph_file_path in glyph_file_infos:
         glyph_data, glyph_width, glyph_height = glyph_util.load_glyph_data_from_png(glyph_file_path)
         builder.glyphs.append(Glyph(
             name=glyph_name,
