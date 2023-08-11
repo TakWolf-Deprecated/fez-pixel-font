@@ -11,41 +11,43 @@ logger = logging.getLogger('font-service')
 
 
 def format_glyph_files():
-    for glyph_file_dir, glyph_file_name in fs_util.walk_files(path_define.glyphs_dir):
-        if not glyph_file_name.endswith('.png'):
-            continue
-        glyph_file_path = os.path.join(glyph_file_dir, glyph_file_name)
-        glyph_data, glyph_width, glyph_height = glyph_util.load_glyph_data_from_png(glyph_file_path)
-        assert glyph_width == glyph_height == 6, f"Incorrect glyph data: '{glyph_file_path}'"
-        for alpha in glyph_data[-1]:
-            assert alpha == 0, f"Incorrect glyph data: '{glyph_file_path}'"
-        for i in range(0, glyph_height):
-            assert glyph_data[i][0] == 0, f"Incorrect glyph data: '{glyph_file_path}'"
-        glyph_util.save_glyph_data_to_png(glyph_data, glyph_file_path)
-        logger.info("Format glyph file: '%s'", glyph_file_path)
+    for glyph_file_dir, _, glyph_file_names in os.walk(path_define.glyphs_dir):
+        for glyph_file_name in glyph_file_names:
+            if not glyph_file_name.endswith('.png'):
+                continue
+            glyph_file_path = os.path.join(glyph_file_dir, glyph_file_name)
+            glyph_data, glyph_width, glyph_height = glyph_util.load_glyph_data_from_png(glyph_file_path)
+            assert glyph_width == glyph_height == 6, f"Incorrect glyph data: '{glyph_file_path}'"
+            for alpha in glyph_data[-1]:
+                assert alpha == 0, f"Incorrect glyph data: '{glyph_file_path}'"
+            for i in range(0, glyph_height):
+                assert glyph_data[i][0] == 0, f"Incorrect glyph data: '{glyph_file_path}'"
+            glyph_util.save_glyph_data_to_png(glyph_data, glyph_file_path)
+            logger.info("Format glyph file: '%s'", glyph_file_path)
 
 
 def _collect_glyph_files() -> tuple[dict[int, str], list[tuple[str, str]]]:
     registry = {}
-    for glyph_file_dir, glyph_file_name in fs_util.walk_files(path_define.glyphs_dir):
-        if not glyph_file_name.endswith('.png'):
-            continue
-        glyph_file_path = os.path.join(glyph_file_dir, glyph_file_name)
-        c_name = glyph_file_name.removesuffix('.png')
-        if c_name == 'notdef':
-            code_points = [-1]
-        elif c_name == '10':
-            code_points = [ord('#')]
-        elif c_name == 'K,Q':
-            code_points = [ord('K'), ord('Q')]
-        elif c_name == 'U,V':
-            code_points = [ord('U'), ord('V')]
-        elif c_name == 'space':
-            code_points = [ord(' ')]
-        else:
-            code_points = [ord(c_name)]
-        for code_point in code_points:
-            registry[code_point] = glyph_file_path
+    for glyph_file_dir, _, glyph_file_names in os.walk(path_define.glyphs_dir):
+        for glyph_file_name in glyph_file_names:
+            if not glyph_file_name.endswith('.png'):
+                continue
+            glyph_file_path = os.path.join(glyph_file_dir, glyph_file_name)
+            c_name = glyph_file_name.removesuffix('.png')
+            if c_name == 'notdef':
+                code_points = [-1]
+            elif c_name == '10':
+                code_points = [ord('#')]
+            elif c_name == 'K,Q':
+                code_points = [ord('K'), ord('Q')]
+            elif c_name == 'U,V':
+                code_points = [ord('U'), ord('V')]
+            elif c_name == 'space':
+                code_points = [ord(' ')]
+            else:
+                code_points = [ord(c_name)]
+            for code_point in code_points:
+                registry[code_point] = glyph_file_path
 
     sequence = list(registry.keys())
     sequence.sort()
